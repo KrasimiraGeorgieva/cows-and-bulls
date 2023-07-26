@@ -37,8 +37,8 @@ class GameController extends Controller
         $bulls = $result['bulls'];
 
         if ($bulls === 4) {
-            $attempts = Session::get('attempts', 0);
-            $score = 100 - $attempts;
+            //$attempts = Session::get('attempts', 0);
+            $score = 100 - $result['attempts'];
 
             $highScore = HighScore::where('name', $name)->first();
 
@@ -58,7 +58,7 @@ class GameController extends Controller
             Session::forget('history');
             Session::forget('attempts');
 
-            return redirect()->route('game.index')->with('success', 'Congratulations, ' . $name . '! You guessed the number in ' . $attempts . ' attempts. Your score has been saved.');
+            return redirect()->route('game.index')->with('success', 'Congratulations, ' . $name . '! You guessed the number in ' . $result['attempts'] . ' attempts. Your score has been saved.');
         }
 
         $history = Session::get('history', []);
@@ -77,7 +77,9 @@ class GameController extends Controller
 
     public function highScores()
     {
-        // TODO
+        $highScores = HighScore::orderBy('score', 'desc')->take(10)->get();
+
+        return view('game.high_scores', compact('highScores'));
     }
 
     private function generateUniqueNumber(): string
@@ -108,7 +110,7 @@ class GameController extends Controller
         return implode('', array_slice($digits, 0, 4));
     }
 
-    private function calculateCowsAndBulls(string $guess, string $number): array
+    private function calculateCowsAndBulls(string $guess, ?string $number): array
     {
         $guessDigits = str_split($guess);
         $numberDigits = str_split($number);
@@ -117,7 +119,7 @@ class GameController extends Controller
 
         $cows = count(array_intersect($guessDigits, $numberDigits)) - count($bulls);
 
-        $attempts = Session::get('attempts', 0) + 1;
+        $attempts = Session::get('attempts', 0);
         Session::put('attempts', $attempts);
 
         return [
