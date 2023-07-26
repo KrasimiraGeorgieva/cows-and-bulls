@@ -8,4 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class HighScore extends Model
 {
     use HasFactory;
+    protected $fillable = ['name', 'score'];
+
+    protected $table = 'high_scores';
 }

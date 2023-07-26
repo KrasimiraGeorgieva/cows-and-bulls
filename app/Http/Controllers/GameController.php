@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HighScore;
+use App\Rules\UniqueFourDigits;
+use Illuminate\Http\RedirectResponse as RedirectResponseAlias;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -18,9 +21,58 @@ class GameController extends Controller
         return view('game.index');
     }
 
-    public function check(Request $request)
+    public function check(Request $request): RedirectResponseAlias
     {
-        // TODO
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'guess' => ['required', 'numeric', 'digits:4', new UniqueFourDigits],
+        ]);
+
+        $name = $request->input('name');
+
+        $number = Session::get('number');
+
+        $result = $this->calculateCowsAndBulls($request->guess, $number);
+        $cows = $result['cows'];
+        $bulls = $result['bulls'];
+
+        if ($bulls === 4) {
+            $attempts = Session::get('attempts', 0);
+            $score = 100 - $attempts;
+
+            $highScore = HighScore::where('name', $name)->first();
+
+            if ($highScore) {
+                if ($score > $highScore->score) {
+                    $highScore->score = $score;
+                    $highScore->save();
+                }
+            } else {
+                HighScore::create([
+                    'name' => $name,
+                    'score' => $score,
+                ]);
+            }
+
+            Session::forget('number');
+            Session::forget('history');
+            Session::forget('attempts');
+
+            return redirect()->route('game.index')->with('success', 'Congratulations, ' . $name . '! You guessed the number in ' . $attempts . ' attempts. Your score has been saved.');
+        }
+
+        $history = Session::get('history', []);
+        $history[] = [
+            'guess' => $request->guess,
+            'cows' => $cows,
+            'bulls' => $bulls,
+        ];
+        Session::put('history', $history);
+
+        $attempts = Session::get('attempts', 0) + 1;
+        Session::put('attempts', $attempts);
+
+        return back()->withInput()->with('message', "Cows: $cows, Bulls: $bulls");
     }
 
     public function highScores()
@@ -54,5 +106,24 @@ class GameController extends Controller
         }
 
         return implode('', array_slice($digits, 0, 4));
+    }
+
+    private function calculateCowsAndBulls(string $guess, string $number): array
+    {
+        $guessDigits = str_split($guess);
+        $numberDigits = str_split($number);
+
+        $bulls = array_intersect_assoc($guessDigits, $numberDigits);
+
+        $cows = count(array_intersect($guessDigits, $numberDigits)) - count($bulls);
+
+        $attempts = Session::get('attempts', 0) + 1;
+        Session::put('attempts', $attempts);
+
+        return [
+            'cows' => $cows,
+            'bulls' => count($bulls),
+            'attempts' => $attempts,
+        ];
     }
 }
