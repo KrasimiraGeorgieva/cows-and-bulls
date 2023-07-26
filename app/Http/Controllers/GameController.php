@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckGameRequest;
 use App\Models\HighScore;
-use App\Rules\UniqueFourDigits;
 use Illuminate\Http\RedirectResponse as RedirectResponseAlias;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
 class GameController extends Controller
@@ -21,15 +20,9 @@ class GameController extends Controller
         return view('game.index');
     }
 
-    public function check(Request $request): RedirectResponseAlias
+    public function check(CheckGameRequest $request): RedirectResponseAlias
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'guess' => ['required', 'numeric', 'digits:4', new UniqueFourDigits],
-        ]);
-
         $name = $request->input('name');
-
         $number = Session::get('number');
 
         $result = $this->calculateCowsAndBulls($request->guess, $number);
@@ -37,7 +30,6 @@ class GameController extends Controller
         $bulls = $result['bulls'];
 
         if ($bulls === 4) {
-            //$attempts = Session::get('attempts', 0);
             $score = 100 - $result['attempts'];
 
             $highScore = HighScore::where('name', $name)->first();
@@ -58,7 +50,10 @@ class GameController extends Controller
             Session::forget('history');
             Session::forget('attempts');
 
-            return redirect()->route('game.index')->with('success', 'Congratulations, ' . $name . '! You guessed the number in ' . $result['attempts'] . ' attempts. Your score has been saved.');
+            Session::flash('success',
+                'Congratulations, ' . $name . '! You guessed the number in ' . $result['attempts'] . ' attempts. Your score has been saved.');
+
+            return redirect()->route('game.index');
         }
 
         $history = Session::get('history', []);

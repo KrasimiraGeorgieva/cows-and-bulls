@@ -16,7 +16,7 @@
         <br />
         <div class="form-group">
             <label for="guess">Enter a 4-digit number with unique digits:</label>
-            <input type="text" class="form-control" name="guess" maxlength="4" required>
+            <input type="text" class="form-control" id="guess" name="guess" maxlength="4" required>
         </div>
         <br />
         <button type="submit" class="btn btn-outline-primary">Check</button>
@@ -26,6 +26,11 @@
         @enderror
         @if(session('message'))
             <div>{{ session('message') }}</div>
+        @endif
+        @if(Session::has('success'))
+            <div class="alert alert-success">
+                {{ Session::get('success') }}
+            </div>
         @endif
         @if(Session::has('history'))
             <h2>History of Guesses:</h2>
