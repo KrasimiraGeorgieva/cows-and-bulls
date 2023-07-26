@@ -16,7 +16,7 @@ class GameController extends Controller
             Session::put('number', $number);
 
         }
-        dump(Session::get('number'));
+
         return view('game.index');
     }
 
